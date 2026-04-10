@@ -57,7 +57,7 @@ spec:
             - containerPort: 80
 ```
 * [2 pkt] Wystaw aplikację wewnątrz klastra za pomocą serwisu typu `ClusterIP`.
-```
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -72,7 +72,7 @@ spec:
       targetPort: 80
 ```
 * [4 pkt] Skonfiguruj zasób `Ingress` tak, aby strona była dostępna z zewnątrz pod darmowym adresem domenowym rozwiązującym się na IP klastra.
-```
+```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
