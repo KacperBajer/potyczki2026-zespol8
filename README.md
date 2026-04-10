@@ -31,7 +31,8 @@ Twoim narzędziem pracy jest nowoczesny klaster K3s z panelem Rancher. Prezes ni
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: krzak-pol-web```
+  name: krzak-pol-web
+```
 * [3 pkt] Uruchom w niej Deployment z obrazem `nginx:alpine` działający w 2 replikach.
 * [2 pkt] Wystaw aplikację wewnątrz klastra za pomocą serwisu typu `ClusterIP`.
 * [4 pkt] Skonfiguruj zasób `Ingress` tak, aby strona była dostępna z zewnątrz pod darmowym adresem domenowym rozwiązującym się na IP klastra.
