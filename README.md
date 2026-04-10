@@ -45,57 +45,8 @@ Wykonanie:
 3.	Z menu wybieramy zakładkę apps -> charts
 4.	Wyszukujemy longhorn
 5.	Wchodzimy w longhorn i klikamy install this version
-6.	Z opcji w headerze wybieramy import yaml i wklejamy config 
+6.	Z opcji w headerze wybieramy import yaml i wklejamy config z pliku zadanie2.yaml
 
-# ── 1. Namespace ──────────────────────────────────────────────
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: krzak-pol-magazyn
-
----
-# ── 2. PersistentVolumeClaim 2GB ──────────────────────────────
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pvc-prezesa
-  namespace: krzak-pol-magazyn
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 2Gi
-
----
-# ── 3. Deployment busybox z podmontowanym wolumenem ───────────
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: busybox-magazyn
-  namespace: krzak-pol-magazyn
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: busybox-magazyn
-  template:
-    metadata:
-      labels:
-        app: busybox-magazyn
-    spec:
-      containers:
-        - name: busybox
-          image: busybox:latest
-          command: ["sh", "-c", "while true; do sleep 3600; done"]
-          volumeMounts:
-            - name: magazyn-prezesa
-              mountPath: /dane_prezesa
-      volumes:
-        - name: magazyn-prezesa
-          persistentVolumeClaim:
-            claimName: pvc-prezesa
 
 
 ### Misja 3: "Awaria systemu księgowego" (10 pkt)
@@ -160,85 +111,7 @@ Wykonanie:
 Wykonanie:
 1.	Wchodzimy na panel ranchera (https://rancher.193.187.69.10.nip.io/dashboard/home)
 2.	Przechodzimy do klastra potyczki
-3.	Z headeru wybieramy opcje import yaml i wklejamy poniższy kod
-
-# ── 1. Namespace ──────────────────────────────────────────────
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: klienci-premium
-
----
-# ── 2. StorageClass krzak-longhorn-retain ─────────────────────
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: krzak-longhorn-retain
-provisioner: driver.longhorn.io
-reclaimPolicy: Retain
-volumeBindingMode: Immediate
-allowVolumeExpansion: true
-parameters:
-  numberOfReplicas: "1"
-  staleReplicaTimeout: "2880"
-  fromBackup: ""
-
----
-# ── 3. Headless Service (wymagany przez StatefulSet) ──────────
-apiVersion: v1
-kind: Service
-metadata:
-  name: mariadb
-  namespace: klienci-premium
-spec:
-  clusterIP: None
-  selector:
-    app: mariadb
-  ports:
-    - port: 3306
-      targetPort: 3306
-
----
-# ── 4. StatefulSet MariaDB ────────────────────────────────────
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: mariadb
-  namespace: klienci-premium
-spec:
-  serviceName: mariadb
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mariadb
-  template:
-    metadata:
-      labels:
-        app: mariadb
-    spec:
-      containers:
-        - name: mariadb
-          image: mariadb:10.11
-          ports:
-            - containerPort: 3306
-          env:
-            - name: MARIADB_ROOT_PASSWORD
-              value: "admin"
-            - name: MARIADB_DATABASE
-              value: "klienci"
-          volumeMounts:
-            - name: mariadb-data
-              mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-    - metadata:
-        name: mariadb-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        storageClassName: krzak-longhorn-retain
-        resources:
-          requests:
-            storage: 5Gi
+3.	Z headeru wybieramy opcje import yaml i wklejamy kod az pliku zadanie7.yaml
 
 
 ### Misja 8: "Pendrive Wiesia" (10 pkt)
@@ -253,82 +126,7 @@ Wykonanie:
 1.	Diagnozujemy problem:
 Problem 1 — RBAC: ServiceAccount wiesio-admin nie ma żadnych uprawnień, a initContainer próbuje wykonać kubectl get nodes — to wymaga dostępu do API Kubernetes. Bez ClusterRole + ClusterRoleBinding dostanie Forbidden.
 Problem 2 — liveness probe: ścieżka /healthz nie istnieje w domyślnym nginx — nginx serwuje /, nie /healthz. Probe będzie dostawać 404, uzna pod za niezdrowy i będzie go restartować w nieskończoność.
-2.	Wgrywamy poprawną konfigurację (przechodzimy do klastra i z headera wybieramy opcje import yaml i wklejamy poniższy kod) 
-# ── Namespace ─────────────────────────────────────────────────
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: panel-kierownictwa
-
----
-# ── ServiceAccount ────────────────────────────────────────────
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: wiesio-admin
-  namespace: panel-kierownictwa
-
----
-# ── NAPRAWA 1: ClusterRole z uprawnieniem do get nodes ────────
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: wiesio-node-reader
-rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list"]
-
----
-# ── RBAC: przypisanie roli do ServiceAccount ──────────────────
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: wiesio-node-reader-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: wiesio-node-reader
-subjects:
-  - kind: ServiceAccount
-    name: wiesio-admin
-    namespace: panel-kierownictwa
-
----
-# ── Deployment z naprawioną liveness probe ────────────────────
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tajny-panel
-  namespace: panel-kierownictwa
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: tajny-panel
-  template:
-    metadata:
-      labels:
-        app: tajny-panel
-    spec:
-      serviceAccountName: wiesio-admin
-      initContainers:
-        - name: system-check
-          image: bitnami/kubectl:latest
-          command: ['sh', '-c', 'kubectl get nodes && echo "System gotowy"']
-      containers:
-        - name: web
-          image: nginx:alpine
-          ports:
-            - containerPort: 80
-          # NAPRAWA 2: /healthz → / (nginx nie ma /healthz)
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
+2.	Wgrywamy poprawną konfigurację (przechodzimy do klastra i z headera wybieramy opcje import yaml i wklejamy kod z pliku zadanie8.yaml) 
 3.	Sprawdzamy poprawność komendami 
 
 kubectl logs -n panel-kierownictwa \
@@ -357,30 +155,7 @@ Zadanie 9.
 5.	Zmiana wersji z reszty zadań
 kubectl set image deployment/system-premii \ backend=httpd:2.4.63 \ -n ksiegowosc-prod
 kubectl set image deployment/potyczki \ container-0=nginx:1.27.5 \ -n krzak-pol-web
-6.	Z headera wbyieramy opcje import yaml i wklejamy poniższy kod
-# ── NetworkPolicy: izolacja MariaDB ──────────────────────────
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: mariadb-tylko-krzak-pol-web
-  namespace: klienci-premium
-spec:
-  podSelector:
-    matchLabels:
-      app: mariadb
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: krzak-pol-web
-      ports:
-        - protocol: TCP
-          port: 3306
-  egress:
-    - {}
+6.	Z headera wbyieramy opcje import yaml i wklejamy kod z pliku zadanie9.yaml
 
 
 
