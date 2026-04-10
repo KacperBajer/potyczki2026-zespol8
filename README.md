@@ -14,26 +14,25 @@ Najlepiej napisany program i najlepiej wdrożony system jest tykającą bombą b
 Opisz kroki wykonane w celu realizacji zadania, szczególnie lokalizacje zasobów, użyte opcje i komendy - nie musisz tego robić bardzo dokładnie, ale w razie wątpliwości będą one działać na twoją korzyść. Na przykład jeśli zadanie nie zostało do końca wykonane, ale znacząca część kroków jest opisana poprawnie, zaliczymy za to częściowe punkty. Albo jeśli zadanie zostało wykonane, ale nie w sposób jakiego oczekiwaliśmy, to opis będzie kluczem do uzyskania za nie punktów. To, co nie jest opisane, a nie jest oczywiste z interfejsu Ranchera, będzie rozstrzygane na twoją niekorzyść! Wszystkie zadania wykonujemy na klastrze **potyczki**.
 
 
-### Opis sytuacji
+---
+
+## CZĘŚĆ 1: Pierwsze kroki w Krzak-Polu
 Gratulacje! Zostałeś przyjęty na prestiżowy, acz bezpłatny staż w prężnie rozwijającym się przedsiębiorstwie wielobranżowym Krzak-Pol S.A. Główny informatyk, Pan Wiesio, wyjechał na ryby w Bieszczady i zapomniał zabrać telefonu. Prezes Janusz właśnie wpadł do serwerowni z wypiekami na twarzy i listą pilnych zadań. 
 
 Twoim narzędziem pracy jest nowoczesny klaster K3s z panelem Rancher. Prezes nie znosi sprzeciwu, a każda sekunda to dla niego utrata zysków. Uratuj firmę, a może dostaniesz referencje!
 
----
-
-## CZĘŚĆ 1: Pierwsze kroki w Krzak-Polu
 
 ### Misja 1: "Młody, w internecie nas nie widać!" (10 pkt)
-> *"Młody, szwagier założył firmę i ma stronę. My nie mamy! Zrób mi tu szybko taką wizytówkę, żeby ładnie wyglądało w internecie. Tylko nie kupuj żadnych domen, bo na to nie mamy budżetu. Wymyśl coś za darmo, przecież znasz te swoje sztuczki!"*
+> *"Młody, szwagier założył firmę i ma stronę. My nie mamy! Zrób mi tu szybko taką wizytówkę, żeby ładnie wyglądało w internecie. Domena? Mam płacić? A na co to komu! Wymyśl coś, przecież w internecie wszystko jest zaa darmo!"*
 
 **Zadania do wykonania:**
 * [1 pkt] Utwórz nową przestrzeń nazw (Namespace) o nazwie `krzak-pol-web`.
 * [3 pkt] Uruchom w niej Deployment z obrazem `nginx:alpine` działający w 2 replikach.
 * [2 pkt] Wystaw aplikację wewnątrz klastra za pomocą serwisu typu `ClusterIP`.
-* [4 pkt] Skonfiguruj zasób `Ingress` tak, aby strona była dostępna z zewnątrz pod darmowym adresem domenowym rozwiązującym się na IP klastra (np. z wykorzystaniem usług `nip.io` lub `sslip.io`).
+* [4 pkt] Skonfiguruj zasób `Ingress` tak, aby strona była dostępna z zewnątrz pod darmowym adresem domenowym rozwiązującym się na IP klastra.
 
 ### Misja 2: "Panie, gdzie są moje faktury?!" (10 pkt)
-> *"Wczoraj wrzuciłem skany najważniejszych faktur na ten nowy serwer. Potem Wiesio wyciągnął wtyczkę od serwera, bo potrzebował gniazdka do odkurzacza. Włączam dzisiaj i pusto! Jakie efemeryczne kontenery?! Zainstaluj mi ten cały system Długi Róg (Longhorn), o którym pisali w gazecie biznesowej, i zrób tak, żeby moje pliki tam siedziały na twardo!"*
+> *"Wczoraj wrzuciłem skany najważniejszych faktur na ten nowy serwer. Potem Wiesio wyciągnął wtyczkę od serwera, bo potrzebował gniazdka do odkurzacza. Włączam dzisiaj i pusto! Jakie efemeryczne kontenery?! Zainstaluj mi ten cały system Długi Róg czy jak to tam, ten Longhorn! Ja to się znam na tym bo w gazecie pisali. I zrób tak, żeby moje pliki tam siedziały na twardo!"*
 
 **Zadania do wykonania:**
 * [3 pkt] Zainstaluj system storage Longhorn na swoim klastrze (możesz wykorzystać wbudowane mechanizmy Ranchera).
