@@ -116,7 +116,9 @@ Wykonanie:
 **Zadania do wykonania:**
 Organizator wdrożył zepsute zasoby w przestrzeni `ksiegowosc-prod`. Twoim zadaniem jest znalezienie i poprawienie wszystkich błędów w definicjach YAML.
 * [5 pkt] Napraw błędy uniemożliwiające poprawne uruchomienie Poda aplikacji.
+  W deployment system-premii zmienić image na httpd:alpine.
 * [5 pkt] Napraw błędy konfiguracyjne w zasobie Service, tak aby ruch prawidłowo trafiał do aplikacji.
+  W service system-premii-svc zmienić selektor na ksiegowosc-app
 
 ### Misja 4: "Atak hakerów i RODO" (10 pkt)
 > *"Dzwonił szwagier, mówi, że konkurencja Pędzi-Wiatr wykradła komuś dane! A w telewizji straszyli jakimiś karami za RODO. Młody, musimy się odgrodzić! Zainstaluj to nowe zabezpieczenie, NeuVector. Zrób tak, żeby z tej naszej nowej strony nikt nie mógł wejść do systemu księgowego. Księgowość to świętość!"*
@@ -148,8 +150,9 @@ Wykonanie:
 
 **Zadania do wykonania:**
 * [3 pkt] Przeskaluj wizytówkę firmy (`krzak-pol-web` z Misji 1) do 5 replik.
+  Zmień replicas w deployment na 5.
 * [7 pkt] Zabezpiecz serwer przed księgowością: nałóż na Deployment z przestrzeni `ksiegowosc-prod` twarde limity zasobów: Limit CPU = `150m`, Limit RAM = `128Mi`.
-
+  Ustaw limits: cpu: 150m, memory: 128Mi
 ---
 
 ## CZĘŚĆ 2: Prezes wchodzi na wyższe obroty
