@@ -34,8 +34,63 @@ metadata:
   name: krzak-pol-web
 ```
 * [3 pkt] Uruchom w niej Deployment z obrazem `nginx:alpine` działający w 2 replikach.
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: krzak-pol-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+```
 * [2 pkt] Wystaw aplikację wewnątrz klastra za pomocą serwisu typu `ClusterIP`.
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: krzak-pol-web
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+```
 * [4 pkt] Skonfiguruj zasób `Ingress` tak, aby strona była dostępna z zewnątrz pod darmowym adresem domenowym rozwiązującym się na IP klastra.
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  namespace: krzak-pol-web
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+```
 
 ### Misja 2: "Panie, gdzie są moje faktury?!" (10 pkt)
 > *"Wczoraj wrzuciłem skany najważniejszych faktur na ten nowy serwer. Potem Wiesio wyciągnął wtyczkę od serwera, bo potrzebował gniazdka do odkurzacza. Włączam dzisiaj i pusto! Jakie efemeryczne kontenery?! Zainstaluj mi ten cały system Długi Róg czy jak to tam, ten Longhorn! Ja to się znam na tym bo w gazecie pisali. I zrób tak, żeby moje pliki tam siedziały na twardo!"*
