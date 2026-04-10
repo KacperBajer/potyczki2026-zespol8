@@ -276,8 +276,32 @@ kubectl set image deployment/potyczki \ container-0=nginx:1.27.5 \ -n krzak-pol-
 > *"Młody, kupiłem dzisiaj ekskluzywny serwer do naszej klastrowej farmy. Niemiec płakał, jak sprzedawał! Nazwałem go "Złoto". Wiem, że fizycznie wygląda tak samo jak stary i stoi w tej samej obudowie, ale to nowa jakość! Baza danych (Misja 7) ma działać TYLKO na tym "złotym" serwerze! I pamiętaj, że jak sprzątaczka odkurza w serwerowni, to musi działać bez przerw przynajmniej 80% kopii naszej wizytówki z Misji 6!"*
 
 **Zadania do wykonania:**
-* [1 pkt] Oznacz węzeł w swoim klastrze specjalną etykietą `tier=zloto`. 
+* [1 pkt] Oznacz węzeł w swoim klastrze specjalną etykietą `tier=zloto`.
+kubectl label node klasterteam tier=zloto
 * [2 pkt] Zmodyfikuj zasób bazy danych z Misji 7, dodając w nim wymóg uruchamiania (twarde **Node Affinity**) wyłącznie na węźle z przypisaną nową etykietą.
+```yaml
+affinity:
+nodeAffinity:
+requiredDuringSchedulingIgnoredDuringExecution:
+nodeSelectorTerms:
+- matchExpressions:
+- key: tier
+operator: In
+values:
+- zloto
+```
 * [2 pkt] Utwórz zasób `PodDisruptionBudget` dla wizytówki, wymuszając nieprzerwaną pracę co najmniej 4 instancji (replik) aplikacji podczas operacji administracyjnych.
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: wizytowka-pdb
+  namespace: krzak-pol-web
+spec:
+  minAvailable: 4
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: apps.deployment-krzak-pol-web-potyczki
+```
 
 
