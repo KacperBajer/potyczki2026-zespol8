@@ -1,0 +1,23 @@
+# ── NetworkPolicy: izolacja MariaDB ──────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mariadb-tylko-krzak-pol-web
+  namespace: klienci-premium
+spec:
+  podSelector:
+    matchLabels:
+      app: mariadb
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: krzak-pol-web
+      ports:
+        - protocol: TCP
+          port: 3306
+  egress:
+    - {}

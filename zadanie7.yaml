@@ -1,0 +1,77 @@
+# ── 1. Namespace ──────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: klienci-premium
+
+---
+# ── 2. StorageClass krzak-longhorn-retain ─────────────────────
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: krzak-longhorn-retain
+provisioner: driver.longhorn.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "2880"
+  fromBackup: ""
+
+---
+# ── 3. Headless Service (wymagany przez StatefulSet) ──────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: klienci-premium
+spec:
+  clusterIP: None
+  selector:
+    app: mariadb
+  ports:
+    - port: 3306
+      targetPort: 3306
+
+---
+# ── 4. StatefulSet MariaDB ────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: klienci-premium
+spec:
+  serviceName: mariadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: "admin"
+            - name: MARIADB_DATABASE
+              value: "klienci"
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: mariadb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: krzak-longhorn-retain
+        resources:
+          requests:
+            storage: 5Gi

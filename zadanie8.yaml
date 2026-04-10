@@ -1,0 +1,74 @@
+# ── Namespace ─────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: panel-kierownictwa
+
+---
+# ── ServiceAccount ────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wiesio-admin
+  namespace: panel-kierownictwa
+
+---
+# ── NAPRAWA 1: ClusterRole z uprawnieniem do get nodes ────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wiesio-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+
+---
+# ── RBAC: przypisanie roli do ServiceAccount ──────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wiesio-node-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wiesio-node-reader
+subjects:
+  - kind: ServiceAccount
+    name: wiesio-admin
+    namespace: panel-kierownictwa
+
+---
+# ── Deployment z naprawioną liveness probe ────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tajny-panel
+  namespace: panel-kierownictwa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tajny-panel
+  template:
+    metadata:
+      labels:
+        app: tajny-panel
+    spec:
+      serviceAccountName: wiesio-admin
+      initContainers:
+        - name: system-check
+          image: bitnami/kubectl:latest
+          command: ['sh', '-c', 'kubectl get nodes && echo "System gotowy"']
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          # NAPRAWA 2: /healthz → / (nginx nie ma /healthz)
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
