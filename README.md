@@ -162,9 +162,58 @@ Wykonanie:
 
 **Zadania do wykonania:**
 * [5 pkt] Zmodyfikuj wizytówkę: dodaj `InitContainer`, który za pomocą prostego polecenia (np. `wget` lub `curl`) pobierze plik `index.html` z dowolnego zewnętrznego adresu (możesz użyć np. surowego pliku z GitHub/Gist).
-* [5 pkt] Podepnij współdzielony wolumen typu `emptyDir` między InitContainerem a głównym Nginxem, aby główny serwer mógł wyświetlić pobrany plik.
-* [5 pkt] Wygeneruj własny certyfikat (Self-Signed), zapisz go jako `Secret` typu TLS w klastrze i podepnij pod Ingress z Misji 1, zapewniając dostęp po HTTPS.
+```yaml
+spec:
+  volumes:
+    - name: shared-data
+      emptyDir: {}
 
+  initContainers:
+    - name: init-download
+      image: curlimages/curl:latest
+      command:
+        - sh
+        - -c
+        - curl -o /data/index.html https://raw.githubusercontent.com/nginxinc/NGINX-Demos/master/nginx-hello/index.html
+      volumeMounts:
+        - name: shared-data
+          mountPath: /data
+
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      volumeMounts:
+        - name: shared-data
+          mountPath: /usr/share/nginx/html
+```
+* [5 pkt] Podepnij współdzielony wolumen typu `emptyDir` między InitContainerem a głównym Nginxem, aby główny serwer mógł wyświetlić pobrany plik.
+  Odpowiedź powyżej ^
+* [5 pkt] Wygeneruj własny certyfikat (Self-Signed), zapisz go jako `Secret` typu TLS w klastrze i podepnij pod Ingress z Misji 1, zapewniając dostęp po HTTPS.
+```bash
+openssl req -x509 -nodes -days 365 \
+-newkey rsa:2048 \
+-keyout tls.key \
+-out tls.crt \
+-subj "/CN=193.187.69.223"
+```
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: potyczki-tls
+  namespace: krzak-pol-web
+type: kubernetes.io/tls
+data:
+  tls.crt: <BASE64_CRT>
+  tls.key: <BASE64_KEY>
+```
+```yaml
+spec:
+  tls:
+    - hosts:
+        - 193.187.69.223
+      secretName: potyczki-tls
+```
 ### Misja 7: "Baza klientów na wieki wieków" (10 pkt)
 > *"Grażynka ma bazę prestiżowych klientów w Excelu. Każą nam to przenieść do jakiejś prawdziwej bazy, żeby było 'stanowo'. I najważniejsze: jak znowu Wiesio wyrwie kable, to dysk z danymi ma zostać nieruszony! Jakieś zasady Retain czy coś, nie znam się na tym, ale ma działać!"*
 
