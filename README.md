@@ -39,6 +39,65 @@ Twoim narzędziem pracy jest nowoczesny klaster K3s z panelem Rancher. Prezes ni
 * [3 pkt] Utwórz PersistentVolumeClaim (PVC) o wielkości 2GB w przestrzeni nazw `krzak-pol-magazyn`, używając `storageClassName: longhorn`.
 * [4 pkt] Wdróż dowolny prosty Pod/Deployment (np. `busybox` z pętlą `sleep`), który będzie miał podmontowany ten wolumen pod ścieżkę `/dane_prezesa`.
 
+Wykonanie:
+1.	Wchodzimy na panel ranchera (https://rancher.193.187.69.10.nip.io/dashboard/home)
+2.	Przechodzimy do klastra potyczki
+3.	Z menu wybieramy zakładkę apps -> charts
+4.	Wyszukujemy longhorn
+5.	Wchodzimy w longhorn i klikamy install this version
+6.	Z opcji w headerze wybieramy import yaml i wklejamy config 
+
+# ── 1. Namespace ──────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: krzak-pol-magazyn
+
+---
+# ── 2. PersistentVolumeClaim 2GB ──────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-prezesa
+  namespace: krzak-pol-magazyn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# ── 3. Deployment busybox z podmontowanym wolumenem ───────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox-magazyn
+  namespace: krzak-pol-magazyn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox-magazyn
+  template:
+    metadata:
+      labels:
+        app: busybox-magazyn
+    spec:
+      containers:
+        - name: busybox
+          image: busybox:latest
+          command: ["sh", "-c", "while true; do sleep 3600; done"]
+          volumeMounts:
+            - name: magazyn-prezesa
+              mountPath: /dane_prezesa
+      volumes:
+        - name: magazyn-prezesa
+          persistentVolumeClaim:
+            claimName: pvc-prezesa
+
+
 ### Misja 3: "Awaria systemu księgowego" (10 pkt)
 > *"Wiesio przed wyjazdem wdrażał nowy system do wyliczania premii. Niestety, księgowa Grażynka dzwoni, że nic nie działa. Kod jest już wrzucony do systemu (Namespace: `ksiegowosc-prod`), ale rzuca jakimiś błędami. Napraw to, bo jutro wypłaty i muszę wiedzieć, ile komu uciąć z pensji!"*
 
@@ -53,6 +112,24 @@ Organizator wdrożył zepsute zasoby w przestrzeni `ksiegowosc-prod`. Twoim zada
 **Zadania do wykonania:**
 * [5 pkt] Zainstaluj system bezpieczeństwa NeuVector na klastrze.
 * [5 pkt] Skonfiguruj w NeuVector regułę sieciową (Network Rule), która jawnie zablokuje wszelki ruch z przestrzeni `krzak-pol-web` do przestrzeni `ksiegowosc-prod`.
+
+Wykonanie:
+1.	Wchodzimy na panel ranchera (https://rancher.193.187.69.10.nip.io/dashboard/home)
+2.	Przechodzimy do klastra potyczki
+3.	Z menu wybieramy zakładkę apps -> charts
+4.	Wyszukujemy NeuVector
+5.	Wchodzimy w NeuVector i klikamy install this version
+6.	Z opcji w headerze wybieramy kubectl shell
+7.	Wykonujemy polecenie kubectl patch svc neuvector-service-webui \
+  -n cattle-neuvector-system \
+  -p '{"spec": {"type": "NodePort"}}'
+8.	Wykonujemy polecenie kubectl get svc -n cattle-neuvector-system neuvector-service-webui
+9.	Sprawdzamy port i wchodzimy na panel (https://193.187.69.223:32160)
+10.	Logujemy się za pomocą usera admin, hasła admin
+11.	Wchodzimy w policy -> group, następnie klikamy guzik add i dodajemy nazwe ns-krzak-pol-web, criteria: namespace=krzak-pol-web i analogicznie ns-ksiegowosc-prod, namespace=ksiegowosc-prod
+12.	Przechodzimy do zakładki policy -> network rules i klikamy guzik add on top, następnie w from wybieramy ns-krzak-pol-web a w opcji to wybieramy ns-ksiegowosc-prod
+13.	Zapisujemy zmiany klikając guzik save
+
 
 ### Misja 5: "Black Friday u Janusza" (10 pkt)
 > *"Młody, wykupiłem baner na lokalnym portalu i zaraz ruszy do nas fala klientów! Podkręć tę naszą wizytówkę, niech działa na pełnych obrotach. Ale uwaga! Zrób limity na ten system księgowy z Misji 3. Grażynka jak zacznie liczyć te premie, to znowu wywali korki w całej serwerowni, a ja nie będę płacił za prąd!"*
@@ -80,6 +157,90 @@ Organizator wdrożył zepsute zasoby w przestrzeni `ksiegowosc-prod`. Twoim zada
 * [4 pkt] Utwórz własną klasę pamięci (`StorageClass`) o nazwie `krzak-longhorn-retain`, bazującą na zainstalowanym Longhornie, wymuszającą politykę `reclaimPolicy: Retain`.
 * [6 pkt] W nowej przestrzeni `klienci-premium` wdróż instancję bazy danych MariaDB używając zasobu `StatefulSet`. Użyj `volumeClaimTemplates` skonfigurowanego do użycia nowej klasy pamięci.
 
+Wykonanie:
+1.	Wchodzimy na panel ranchera (https://rancher.193.187.69.10.nip.io/dashboard/home)
+2.	Przechodzimy do klastra potyczki
+3.	Z headeru wybieramy opcje import yaml i wklejamy poniższy kod
+
+# ── 1. Namespace ──────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: klienci-premium
+
+---
+# ── 2. StorageClass krzak-longhorn-retain ─────────────────────
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: krzak-longhorn-retain
+provisioner: driver.longhorn.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "2880"
+  fromBackup: ""
+
+---
+# ── 3. Headless Service (wymagany przez StatefulSet) ──────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: klienci-premium
+spec:
+  clusterIP: None
+  selector:
+    app: mariadb
+  ports:
+    - port: 3306
+      targetPort: 3306
+
+---
+# ── 4. StatefulSet MariaDB ────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: klienci-premium
+spec:
+  serviceName: mariadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: "admin"
+            - name: MARIADB_DATABASE
+              value: "klienci"
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: mariadb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: krzak-longhorn-retain
+        resources:
+          requests:
+            storage: 5Gi
+
+
 ### Misja 8: "Pendrive Wiesia" (10 pkt)
 > *"Znalazłem pendrive w biurku Wiesia. Mówił, że to nowy Panel Kierownictwa. Próbowałem to odpalić z tego pliku YAML, ale wszystko świeci na czerwono. Grażynka płacze, ja nie mam podglądu w zyski. Napraw ten kod, niech to ruszy!"*
 
@@ -88,12 +249,140 @@ W głównym katalogu tego repozytorium znajdziesz plik `pendrive.yaml`. Wdróż 
 * [5 pkt] Napraw błędy związane z RBAC.
 * [5 pkt] Napraw błędy powodujące nieskończone restarty Poda.
 
+Wykonanie:
+1.	Diagnozujemy problem:
+Problem 1 — RBAC: ServiceAccount wiesio-admin nie ma żadnych uprawnień, a initContainer próbuje wykonać kubectl get nodes — to wymaga dostępu do API Kubernetes. Bez ClusterRole + ClusterRoleBinding dostanie Forbidden.
+Problem 2 — liveness probe: ścieżka /healthz nie istnieje w domyślnym nginx — nginx serwuje /, nie /healthz. Probe będzie dostawać 404, uzna pod za niezdrowy i będzie go restartować w nieskończoność.
+2.	Wgrywamy poprawną konfigurację (przechodzimy do klastra i z headera wybieramy opcje import yaml i wklejamy poniższy kod) 
+# ── Namespace ─────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: panel-kierownictwa
+
+---
+# ── ServiceAccount ────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wiesio-admin
+  namespace: panel-kierownictwa
+
+---
+# ── NAPRAWA 1: ClusterRole z uprawnieniem do get nodes ────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wiesio-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+
+---
+# ── RBAC: przypisanie roli do ServiceAccount ──────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wiesio-node-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wiesio-node-reader
+subjects:
+  - kind: ServiceAccount
+    name: wiesio-admin
+    namespace: panel-kierownictwa
+
+---
+# ── Deployment z naprawioną liveness probe ────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tajny-panel
+  namespace: panel-kierownictwa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tajny-panel
+  template:
+    metadata:
+      labels:
+        app: tajny-panel
+    spec:
+      serviceAccountName: wiesio-admin
+      initContainers:
+        - name: system-check
+          image: bitnami/kubectl:latest
+          command: ['sh', '-c', 'kubectl get nodes && echo "System gotowy"']
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          # NAPRAWA 2: /healthz → / (nginx nie ma /healthz)
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+3.	Sprawdzamy poprawność komendami 
+
+kubectl logs -n panel-kierownictwa \
+  $(kubectl get pod -n panel-kierownictwa -o jsonpath='{.items[0].metadata.name}') \
+  -c system-check (powinna zwrócić status running i napis „system gotowy”)
+
+kubectl get pods -n panel-kierownictwa (powinno być 1/1 running)
+
+kubectl describe pod -n panel-kierownictwa \
+  $(kubectl get pod -n panel-kierownictwa -o jsonpath='{.items[0].metadata.name}') \
+  | grep -A10 "Liveness" (powinno być wszędzie status true)
+
 ### Misja 9: "Paranoja i Twierdza Krzak-Pol" (10 pkt)
 > *"Wiesio ściągał najnowsze oprogramowanie (tag 'latest') i potem w piątek po południu pół firmy nie działało! Skonfiguruj ten cały NeuVector tak, żeby już NIKT nie mógł wdrażać niczego z 'latest'. A ta baza danych dla prestiżowych klientów z Misji 7? Zablokuj do niej dostęp WSZYSTKIM, poza naszą stroną internetową z Misji 6!"*
 
 **Zadania do wykonania:**
 * [5 pkt] Utwórz regułę **Admission Control** w NeuVector, która zablokuje wdrażanie jakichkolwiek podów korzystających z obrazów z tagiem `:latest`. (Upewnij się, że w innych misjach używasz konkretnych wersji!).
 * [5 pkt] Utwórz zasób `NetworkPolicy` w K8s dla przestrzeni `klienci-premium`, który zablokuje cały ruch do bazy danych, z wyjątkiem połączeń przychodzących wyłącznie z namespace'u `krzak-pol-web`.
+
+Wykonanie:
+Zadanie 9.
+1.	Wchodzimy do panelu neuvector (https://193.187.69.223:32160)
+2.	Logujemy się admin/admin
+3.	Wchodzimy w policy -> admission control -> włączamy system (przełącznik w prawym górnym na on) z opcją protect
+4.	Kliamy przycisk add, wybieramy image is one of *:latest, klikamy plusik obok, tryb protect, zatwierdzamy klikając add
+5.	Zmiana wersji z reszty zadań
+kubectl set image deployment/system-premii \ backend=httpd:2.4.63 \ -n ksiegowosc-prod
+kubectl set image deployment/potyczki \ container-0=nginx:1.27.5 \ -n krzak-pol-web
+6.	Z headera wbyieramy opcje import yaml i wklejamy poniższy kod
+# ── NetworkPolicy: izolacja MariaDB ──────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mariadb-tylko-krzak-pol-web
+  namespace: klienci-premium
+spec:
+  podSelector:
+    matchLabels:
+      app: mariadb
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: krzak-pol-web
+      ports:
+        - protocol: TCP
+          port: 3306
+  egress:
+    - {}
+
+
 
 ### Misja 10: "Elitarny serwer dla Prezesa" (5 pkt)
 > *"Młody, kupiłem dzisiaj ekskluzywny serwer do naszej klastrowej farmy. Niemiec płakał, jak sprzedawał! Nazwałem go "Złoto". Wiem, że fizycznie wygląda tak samo jak stary i stoi w tej samej obudowie, ale to nowa jakość! Baza danych (Misja 7) ma działać TYLKO na tym "złotym" serwerze! I pamiętaj, że jak sprzątaczka odkurza w serwerowni, to musi działać bez przerw przynajmniej 80% kopii naszej wizytówki z Misji 6!"*
